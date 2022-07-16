@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+author: "sudo"
+date: "2022/2/10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{stan, output.var="rstantest01"}
+data{
+ int N_obs;
+ int N_miss;
+ int M;
+ matrix[N_obs,M] x_obs;
+ matrix[N_miss,M] x_miss;
+ vector[N_obs] y_obs;
+}
+
+parameters{
+ vector[M] beta;
+ real<lower=0> sigma;
+ vector[N_miss] y_miss;
+}
+
+model{
+ beta ~ normal(0,100);
+ sigma ~ cauchy(0,5);
+ y_obs ~ normal(x_obs*beta, sigma);
+ y_miss ~ normal(x_miss*beta, sigma);
+}
+```
+
+```{r}
+library(rstan)
+library(rstudioapi)
+
+data <- read.table("policyp.txt")
+nrow(data)
+
+ic <- matrix(data=1, nrow(data), 1)
+data <- data.frame(data, ic)
+
+data2 <-subset(data, !is.na(data$hincome))
+data3 <-data.frame(data2$ic, data2$age, data2$age2, data2$women, 
+                   data2$middle, data2$low, 
+                   data2$umari, data2$dmari, 
+                   data2$jiei, data2$iemp,
+                   data2$uwhite, data2$blue, data2$jobseek, data2$nojob)
+
+data4 <-subset(data, is.na(data$hincome))
+data5 <-data.frame(data4$ic, data4$age, data4$age2, data4$women, 
+                   data4$middle, data4$low, 
+                   data4$umari, data4$dmari, 
+                   data4$jiei, data4$iemp,
+                   data4$uwhite, data4$blue, data4$jobseek, data4$nojob)
+
+N_obs <- nrow(data3)
+N_miss <- nrow(data5)
+
+datastan <- list(N_obs=N_obs, N_miss=N_miss, M=14, x_obs=data3, x_miss=data5, y_obs=data2$lhincome)
+
+fit <- sampling(rstantest01, datastan)
+print(fit)
+
+postmean <- matrix(summary(fit)$summary[, "mean"])
+
+for(i in 1:nrow(data5)){
+  data4$lhincome[i] <- postmean[i+15] ## 15=M+sigma
+}
+
+data_total <- rbind(data2, data4)
+summary(data_total)
+
+result1 <- lm(egalita~age+age2+women+
+                middle+low+
+                umari+dmari+
+                jiei+iemp+
+                uwhite+blue+jobseek+nojob+lhincome, data2)
+summary(result1)
+result2 <- lm(egalita~age+age2+women+
+                middle+low+
+                umari+dmari+
+                jiei+iemp+
+                uwhite+blue+jobseek+nojob+lhincome, data_total)
+summary(result2)
+
+write.table(data_total, "policyp2.txt")
+
+```
+
