@@ -1,6 +1,6 @@
 # Sudo_2022
 
-This folder provides R scripts for Sudo(2022).
+This folder provides R scripts for Sudo(2022) published in "Rationality and Society".
 
 # 1_impute_income.Rmd: Rmarkdown for imputing missing values of household income. 
 # 2_T1_F1.R: Rscript for making Table 1 and Figure 1.
